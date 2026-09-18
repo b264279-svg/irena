@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
+<title>BOSS EVOLUTION</title>
+<style>
+:root{
+  --bg:#080b12;--panel:#101622;--panel2:#172033;--line:#2c3850;
+  --text:#f4f7ff;--sub:#9ca9bf;--accent:#71b7ff;--good:#68e08a;--danger:#ff6377;--gold:#ffd25f
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button{font:inherit;color:inherit;border:0}
+#game{position:fixed;inset:0;background:radial-gradient(circle at 50% 35%,#162236 0,#0b0f17 48%,#07090e 100%)}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#topbar{position:absolute;left:12px;right:12px;top:max(12px,env(safe-area-inset-top));display:flex;gap:10px;align-items:flex-start;justify-content:space-between;pointer-events:none;z-index:5}
+.hud{background:rgba(8,12,20,.82);border:1px solid rgba(127,158,201,.24);box-shadow:0 8px 30px rgba(0,0,0,.18);backdrop-filter:blur(10px);border-radius:14px;padding:10px 12px;min-width:210px}
+.hud h1{font-size:16px;line-height:1;margin:0 0 7px;font-weight:800;letter-spacing:.04em}
+.row{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--sub);margin:4px 0}
+.row b{color:var(--text)}
+.bar{height:8px;border-radius:999px;background:#1a2231;overflow:hidden;border:1px solid rgba(255,255,255,.05)}
+.bar>i{display:block;height:100%;width:0;border-radius:999px}
+.hp>i{background:linear-gradient(90deg,#ff506b,#ff916b)}
+.exp>i{background:linear-gradient(90deg,#5f9cff,#8c6cff)}
+#stageBox{min-width:120px;text-align:right}
+#miniBtns{display:flex;gap:6px;pointer-events:auto;justify-content:flex-end}
+.mini{padding:8px 10px;border-radius:10px;background:#151d2c;border:1px solid #2e3b54;font-weight:700;font-size:12px}
+#controls{position:absolute;inset:0;pointer-events:none;z-index:6}
+#stick{position:absolute;left:max(22px,env(safe-area-inset-left) + 14px);bottom:max(24px,env(safe-area-inset-bottom) + 18px);width:126px;height:126px;border-radius:50%;background:rgba(22,31,47,.62);border:2px solid rgba(129,161,208,.25);box-shadow:inset 0 0 35px rgba(0,0,0,.35);pointer-events:auto;touch-action:none}
+#stick::after{content:"";position:absolute;inset:20px;border-radius:50%;border:1px solid rgba(255,255,255,.06)}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border-radius:50%;background:linear-gradient(180deg,#8abfff,#5284dc);border:2px solid rgba(255,255,255,.3);box-shadow:0 8px 22px rgba(0,0,0,.25)}
+#attack{position:absolute;right:max(20px,env(safe-area-inset-right) + 14px);bottom:max(30px,env(safe-area-inset-bottom) + 24px);width:102px;height:102px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8178,#b72f53);border:2px solid rgba(255,255,255,.25);box-shadow:0 10px 35px rgba(0,0,0,.32);font-size:16px;font-weight:900;letter-spacing:.05em;pointer-events:auto;touch-action:none}
+#attack:active{transform:scale(.96)}
+#toast{position:absolute;left:50%;top:74px;transform:translateX(-50%);padding:9px 14px;border-radius:12px;background:rgba(7,10,16,.9);border:1px solid rgba(255,255,255,.1);font-size:13px;font-weight:700;opacity:0;transition:opacity .18s;pointer-events:none;z-index:8}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,4,8,.72);backdrop-filter:blur(7px);z-index:20}
+.overlay.on{display:flex}
+.panel{width:min(720px,94vw);max-height:92vh;overflow:auto;background:linear-gradient(180deg,#131b2a,#0f1520);border:1px solid #2b3850;border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.5);padding:22px}
+.title{font-size:clamp(34px,8vw,64px);font-weight:950;letter-spacing:.08em;text-align:center;margin:8px 0 8px}
+.subTitle{text-align:center;color:var(--sub);margin:0 0 20px}
+.bigBtn{display:block;width:100%;padding:14px 16px;margin:10px 0;border-radius:14px;background:#1a2b46;border:1px solid #395d8e;font-weight:900;font-size:16px}
+.bigBtn.alt{background:#17202d;border-color:#304158}
+.bigBtn.danger{background:#3a1a27;border-color:#79364d}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.card{background:#141d2c;border:1px solid #2b3a55;border-radius:16px;padding:14px}
+.card h3{margin:0 0 7px;font-size:15px}.card p{margin:4px 0;color:var(--sub);font-size:13px}.card b{font-size:18px}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.choice{min-height:170px;text-align:left;background:linear-gradient(180deg,#17243a,#121a28);border:1px solid #365171;border-radius:16px;padding:15px}
+.choice:active{transform:scale(.99)}
+.choice .tag{display:inline-block;font-size:11px;background:#213554;padding:4px 7px;border-radius:999px;color:#b9d7ff;margin-bottom:8px}
+.choice h3{margin:0 0 6px;font-size:17px}.choice p{margin:0;color:var(--sub);font-size:12px;line-height:1.55}
+.bookGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.evo{padding:13px;border-radius:14px;border:1px solid #2a3851;background:#131b28}.evo.locked{opacity:.45}.evo h3{margin:0 0 6px;font-size:15px}.evo p{margin:0;font-size:12px;color:var(--sub)}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.close{padding:8px 11px;border-radius:10px;background:#192131;border:1px solid #2b3950}
+.small{font-size:12px;color:var(--sub)}
+#bossBanner{position:absolute;left:50%;top:14%;transform:translateX(-50%) scale(.8);padding:12px 20px;border:1px solid rgba(255,113,113,.5);background:rgba(65,13,24,.85);border-radius:14px;color:#ffd7dc;font-weight:950;letter-spacing:.12em;opacity:0;pointer-events:none;z-index:10}
+#bossBanner.show{animation:boss 1.6s ease both}
+@keyframes boss{0%{opacity:0;transform:translateX(-50%) scale(.7)}18%{opacity:1;transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(1.04)}}
+@media(max-width:700px){.hud{min-width:0;width:min(70vw,290px)}#stageBox{min-width:78px}.choices{grid-template-columns:1fr}.choice{min-height:auto}.kv{grid-template-columns:1fr 1fr}.bookGrid{grid-template-columns:1fr}.panel{padding:16px}.title{font-size:42px}}
+</style>
+</head>
+<body>
+<div id="game">
+<canvas id="c"></canvas>
+<div id="topbar">
+  <div class="hud">
+    <h1>BOSS EVOLUTION</h1>
+    <div class="row"><span>Lv</span><b id="lv">1</b><span id="evoName">SLIME</span></div>
+    <div class="row"><span>HP</span><b id="hpText">100 / 100</b></div>
+    <div class="bar hp"><i id="hpBar"></i></div>
+    <div class="row"><span>EXP</span><b id="expText">0 / 100</b></div>
+    <div class="bar exp"><i id="expBar"></i></div>
+  </div>
+  <div id="stageBox" class="hud">
+    <div class="row" style="justify-content:flex-end"><span>STAGE</span><b id="stage">1</b></div>
+    <div class="row" style="justify-content:flex-end"><span>KILLS</span><b id="kills">0</b></div>
+    <div class="row" style="justify-content:flex-end"><span>SOULS</span><b id="souls">0</b></div>
+    <div id="miniBtns">
+      <button class="mini" id="pauseBtn">Ⅱ</button>
+      <button class="mini" id="bookBtn">BOOK</button>
+      <button class="mini" id="settingsBtn">⚙</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="bossBanner">BOSS BATTLE</div>
+<div id="controls"><div id="stick"><div id="knob"></div></div><button id="attack">ATTACK</button></div>
+
+<div id="titleOverlay" class="overlay on"><div class="panel">
+  <div class="title">BOSS EVOLUTION</div>
+  <p class="subTitle">倒した敵の力を吸収して、最強のボスへ。</p>
+  <div class="kv">
+    <div class="card"><h3>GAME</h3><p>敵を倒す → EXP → 3択 → 進化</p></div>
+    <div class="card"><h3>CONTROL</h3><p>左のぷにコンで移動 / 右で攻撃</p></div>
+  </div>
+  <button id="startBtn" class="bigBtn">START</button>
+  <button id="titleBookBtn" class="bigBtn alt">EVOLUTION BOOK</button>
+</div></div>
+
+<div id="levelOverlay" class="overlay"><div class="panel">
+  <div class="topline"><div><div class="small">LEVEL UP</div><h2 id="levelTitle" style="margin:4px 0">Lv.2</h2></div></div>
+  <div class="choices" id="choices"></div>
+</div></div>
+
+<div id="deathOverlay" class="overlay"><div class="panel">
+  <div class="title" style="font-size:42px">DEFEATED</div>
+  <p id="deathText" class="subTitle"></p>
+  <div class="kv">
+    <div class="card"><h3>SOULS GAINED</h3><b id="gainSouls">0</b></div>
+    <div class="card"><h3>RUN LEVEL</h3><b id="deadLevel">1</b></div>
+  </div>
+  <button id="rebirthBtn" class="bigBtn">REBIRTH</button>
+  <button id="deathBookBtn" class="bigBtn alt">OPEN EVOLUTION BOOK</button>
+</div></div>
+
+<div id="bookOverlay" class="overlay"><div class="panel">
+  <div class="topline"><div><div class="small">COLLECTION</div><h2 style="margin:4px 0">EVOLUTION BOOK</h2></div><button class="close" data-close="bookOverlay">CLOSE</button></div>
+  <div id="bookGrid" class="bookGrid"></div>
+</div></div>
+
+<div id="settingsOverlay" class="overlay"><div class="panel">
+  <div class="topline"><div><div class="small">SYSTEM</div><h2 style="margin:4px 0">SETTINGS</h2></div><button class="close" data-close="settingsOverlay">CLOSE</button></div>
+  <div class="card"><h3>PERMANENT UPGRADES</h3><p>REBIRTHで手に入るSOULを使う。</p></div>
+  <div id="upgradeList"></div>
+  <button id="saveBtn" class="bigBtn alt">SAVE NOW</button>
+  <button id="resetBtn" class="bigBtn danger">RESET DATA</button>
+</div></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const ui = id => document.getElementById(id);
+
+const SAVE_KEY = "boss_evolution_singlefile_v1";
+const W = 1600, H = 900;
+const rnd = (a,b) => Math.random()*(b-a)+a;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const dist2 = (a,b) => { const x=a.x-b.x,y=a.y-b.y; return x*x+y*y; };
+
+const EVOS = {
+  slime:{name:"SLIME",req:"最初から",unlock:0,color:"#63d7a4",scale:1,hp:1,atk:1,spd:1},
+  giant_slime:{name:"GIANT SLIME",req:"Lv10 + GIANT",unlock:10,color:"#78dc67",scale:1.34,hp:1.5,atk:1.2,spd:.9},
+  flame_slime:{name:"FLAME SLIME",req:"Lv10 + FLAME",unlock:10,color:"#ff694f",scale:1.16,hp:1.1,atk:1.55,spd:1},
+  ice_slime:{name:"ICE SLIME",req:"Lv10 + ICE",unlock:10,color:"#67bfff",scale:1.16,hp:1.3,atk:1.25,spd:.95},
+  thunder_slime:{name:"THUNDER SLIME",req:"Lv10 + LIGHTNING",unlock:10,color:"#bd79ff",scale:1.16,hp:1.1,atk:1.45,spd:1.25},
+  poison_beast:{name:"POISON BEAST",req:"Lv15 + POISON + GIANT",unlock:15,color:"#b95ad1",scale:1.45,hp:1.7,atk:1.4,spd:1.05},
+  sky_dragon:{name:"SKY DRAGON",req:"Lv15 + FLIGHT + LIGHTNING",unlock:15,color:"#71c7ff",scale:1.55,hp:1.8,atk:1.8,spd:1.45},
+  inferno_dragon:{name:"INFERNO DRAGON",req:"Lv20 + FLAME + FLIGHT",unlock:20,color:"#ff4c50",scale:1.65,hp:2.2,atk:2.1,spd:1.35},
+  demon_king:{name:"DEMON KING",req:"Lv25 + FLAME + LIGHTNING + SUMMON",unlock:25,color:"#c84bda",scale:1.9,hp:3,atk:2.8,spd:1.15},
+  forbidden:{name:"FORBIDDEN",req:"Lv30 + FLAME + ICE + LIGHTNING + POISON + FLIGHT",unlock:30,color:"#f4f7ff",scale:2.2,hp:4,atk:4,spd:1.4}
+};
+
+const ABILITIES = [
+ {id:"power",name:"POWER",desc:"攻撃力 +8",tag:"ATTACK",apply:p=>p.attackPower+=8},
+ {id:"vitality",name:"VITALITY",desc:"最大HP +50、HP全回復",tag:"HP",apply:p=>{p.baseMaxHp+=50;p.maxHp+=50;p.hp=p.maxHp}},
+ {id:"speed",name:"SPEED",desc:"移動速度 +35",tag:"MOVE",apply:p=>p.baseSpeed+=35},
+ {id:"regen",name:"REGEN",desc:"毎秒HP +2",tag:"SURVIVE",apply:p=>p.regen+=2},
+ {id:"giant",name:"GIANT",desc:"身体が大きくなる。攻撃範囲も増える",tag:"EVOLUTION",apply:p=>p.tags.add("giant")},
+ {id:"critical",name:"CRITICAL",desc:"クリティカル率 +20%（2倍ダメージ）",tag:"ATTACK",apply:p=>p.crit+=.2},
+ {id:"explosion",name:"EXPLOSION",desc:"攻撃ヒット時、小範囲に追加ダメージ",tag:"ATTACK",apply:p=>p.explosion=true},
+ {id:"multishot",name:"MULTISHOT",desc:"一度に追加弾を2発飛ばす",tag:"ATTACK",apply:p=>p.multishot=true},
+ {id:"flame",name:"FLAME",desc:"炎属性。攻撃力 +15",tag:"EVOLUTION",apply:p=>{p.tags.add("flame");p.attackPower+=15}},
+ {id:"ice",name:"ICE",desc:"氷属性。攻撃力 +10",tag:"EVOLUTION",apply:p=>{p.tags.add("ice");p.attackPower+=10}},
+ {id:"lightning",name:"LIGHTNING",desc:"雷属性。攻撃力 +12",tag:"EVOLUTION",apply:p=>{p.tags.add("lightning");p.attackPower+=12}},
+ {id:"flight",name:"FLIGHT",desc:"移動速度 +50。空中移動",tag:"EVOLUTION",apply:p=>{p.tags.add("flight");p.baseSpeed+=50}},
+ {id:"summon",name:"SUMMON",desc:"小型の味方スライムが援護",tag:"EVOLUTION",apply:p=>p.summon=true},
+ {id:"poison",name:"POISON",desc:"毒属性。敵に追加ダメージ",tag:"EVOLUTION",apply:p=>{p.tags.add("poison");p.poison=true}}
+];
+
+let save = loadSave();
+let game = {
+  running:false,paused:true,over:false,time:0,stage:1,kills:0,
+  spawnTimer:0,boss:false,shake:0,flash:0,bannerUntil:0,
+  selectedEvo:"slime",discovered:new Set(save.discovered || ["slime"]),
+  enemies:[],projectiles:[],effects:[],texts:[],helpers:[],
+  choicePool:[],pendingLevel:false
+};
+
+let player = null;
+
+function loadSave(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY)||"null");
+    if(s && typeof s==="object") return Object.assign({
+      souls:0,rebirths:0,upgrades:{attack:0,hp:0,speed:0,regen:0,crit:0},discovered:["slime"],lastEvo:"slime"
+    },s);
+  }catch(e){}
+  return {souls:0,rebirths:0,upgrades:{attack:0,hp:0,speed:0,regen:0,crit:0},discovered:["slime"],lastEvo:"slime"};
+}
+function saveGame(){
+  const out = JSON.parse(JSON.stringify(save));
+  out.discovered = Array.from(game.discovered);
+  out.lastEvo = game.selectedEvo;
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(out));toast("SAVE OK")}catch(e){}
+}
+function resetData(){
+  if(!confirm("保存データをすべて消します。よろしいですか？")) return;
+  localStorage.removeItem(SAVE_KEY); location.reload();
+}
+
+function makePlayer(){
+  const u=save.upgrades||{};
+  return {
+    x:W/2,y:H/2,r:30,baseR:30,baseMaxHp:100+u.hp*25,maxHp:100+u.hp*25,hp:100+u.hp*25,
+    baseSpeed:260+u.speed*8,speed:260+u.speed*8,exp:0,level:1,nextExp:100,
+    attackPower:10+u.attack*4,regen:u.regen*.5,crit:u.crit*.02,explosion:false,multishot:false,summon:false,poison:false,
+    tags:new Set(),cooldown:0,hitInv:0,alive:true,evo:"slime",killsThisRun:0
+  };
+}
+
+function applyEvo(){
+  const e=EVOS[player.evo];
+  player.r=player.baseR*e.scale;
+  player.maxHp=(100+(save.upgrades.hp||0)*25)*e.hp + (player.baseMaxHp-(100+(save.upgrades.hp||0)*25));
+  if(player.hp>player.maxHp) player.hp=player.maxHp;
+  player.speed=(260+(save.upgrades.speed||0)*8 + player.speedBonus)*(e.spd);
+  player.attackPower=(10+(save.upgrades.attack||0)*4 + player.attackBonus)*(e.atk);
+}
+
+function createRunPlayer(){
+  const p=makePlayer(); p.speedBonus=0;p.attackBonus=0; player=p;
+  player.evo = "slime";
+  applyEvo();
+}
+
+function calcNextExp(lv){return Math.floor(100*Math.pow(1.18,lv-1));}
+
+function startGame(){
+  createRunPlayer();
+  game.running=true; game.paused=false; game.over=false; game.time=0;game.stage=1;game.kills=0;
+  game.enemies=[];game.projectiles=[];game.effects=[];game.texts=[];game.helpers=[];
+  game.spawnTimer=.2;game.selectedEvo="slime";
+  ui("titleOverlay").classList.remove("on"); updateHUD(); toast("SURVIVE");
+}
+
+function addText(x,y,text,color="#fff"){
+  game.texts.push({x,y,text,color,t:0.8,vy:-28});
+}
+function effect(x,y,r,color="#fff",life=.35){
+  game.effects.push({x,y,r,color,t:life,max:life});
+  if(game.effects.length>120) game.effects.shift();
+}
+function damageNumber(x,y,n,color="#fff"){addText(x,y,Math.round(n),color)}
+
+const enemyDefs = {
+  goblin:{name:"GOBLIN",hp:35,damage:8,speed:75,r:18,exp:25,color:"#7bc96f"},
+  runner:{name:"RUNNER",hp:24,damage:7,speed:135,r:14,exp:26,color:"#f3c45e"},
+  tank:{name:"TANK",hp:95,damage:14,speed:48,r:25,exp:42,color:"#9d7c64"},
+  mage:{name:"MAGE",hp:55,damage:16,speed:62,r:19,exp:48,color:"#b37cff"}
+};
+const bossDefs = {
+  5:{name:"HERO",hp:900,damage:25,speed:75,r:30,exp:450,color:"#ffd37d"},
+  10:{name:"HOLY KNIGHT",hp:1500,damage:32,speed:58,r:35,exp:700,color:"#e8f4ff"},
+  15:{name:"ARCHMAGE",hp:1100,damage:45,speed:45,r:28,exp:800,color:"#c08bff"},
+  20:{name:"CHAMPION",hp:2300,damage:48,speed:70,r:40,exp:1200,color:"#ff817b"}
+};
+
+function maxEnemies(){return Math.min(22+game.stage,50)}
+function spawnPoint(){
+  const side=Math.floor(Math.random()*4), m=70;
+  if(side===0)return{x:rnd(m,W-m),y:-40}; if(side===1)return{x:W+40,y:rnd(m,H-m)};
+  if(side===2)return{x:rnd(m,W-m),y:H+40}; return{x:-40,y:rnd(m,H-m)};
+}
+function stageMult(){return {hp:Math.pow(1.16,game.stage-1),dmg:Math.pow(1.10,game.stage-1),speed:Math.pow(1.025,game.stage-1)}}
+function spawnEnemy(forceType){
+  if(game.enemies.length>=maxEnemies())return;
+  const s=spawnPoint(), m=stageMult(), roll=Math.random();
+  let type=forceType||("goblin");
+  if(!forceType){type=roll<.55?"goblin":roll<.73?"runner":roll<.9?"tank":"mage";}
+  const d=enemyDefs[type];
+  const e={type,x:s.x,y:s.y,r:d.r,hp:d.hp*m.hp,maxHp:d.hp*m.hp,damage:d.damage*m.dmg,speed:d.speed*m.speed,exp:d.exp,color:d.color,attackCd:0,stun:0};
+  game.enemies.push(e);
+}
+function spawnBoss(){
+  const d=bossDefs[game.stage]||{name:"EVOLUTION BOSS",hp:2600+game.stage*180,damage:50+game.stage*2,speed:68,r:42,exp:1500,color:"#ff6f91"};
+  const m=stageMult(),s=spawnPoint();
+  game.boss=true;
+  game.enemies.push({boss:true,name:d.name,x:s.x,y:s.y,r:d.r,hp:d.hp*m.hp,maxHp:d.hp*m.hp,damage:d.damage*m.dmg,speed:d.speed*m.speed,exp:d.exp,color:d.color,attackCd:0,phase:0});
+  game.bannerUntil=performance.now()+1600; ui("bossBanner").classList.remove("show"); void ui("bossBanner").offsetWidth; ui("bossBanner").classList.add("show");
+}
+
+function nearestEnemy(){
+  let best=null,bd=1e18;
+  for(const e of game.enemies){const d=dist2(player,e);if(d<bd){bd=d;best=e;}}
+  return best;
+}
+function performAttack(){
+  if(!game.running||game.paused||game.over||!player||!player.alive||player.cooldown>0)return;
+  player.cooldown=.28;
+  const target=nearestEnemy();
+  let tx=player.x+stick.dx*200,ty=player.y+stick.dy*200;
+  if(target){const d=Math.sqrt(dist2(player,target));if(d<560){tx=target.x;ty=target.y;}}
+  let dx=tx-player.x,dy=ty-player.y,len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
+  const shots=player.multishot?[{a:-.16},{a:0},{a:.16}]:[{a:0}];
+  for(const sh of shots){
+    const ca=Math.cos(sh.a),sa=Math.sin(sh.a),sx=dx*ca-dy*sa,sy=dx*sa+dy*ca;
+    game.projectiles.push({x:player.x+sx*28,y:player.y+sy*28,vx:sx*680,vy:sy*680,life:.8,r:7,damage:player.attackPower});
+  }
+  effect(player.x,player.y,18,"#fff",.2); game.shake=Math.max(game.shake,3);
+}
+function damageEnemy(e,dmg){
+  if(!e)return;
+  if(Math.random()<player.crit){dmg*=2;damageNumber(e.x,e.y-18,dmg,"#ffd36b")}
+  e.hp-=dmg; effect(e.x,e.y,Math.max(10,e.r*1.2),player.tags.has("flame")?"#ff714e":player.tags.has("ice")?"#74c9ff":"#fff",.18);
+  if(e.hp<=0) killEnemy(e);
+}
+function killEnemy(e){
+  const idx=game.enemies.indexOf(e); if(idx>=0)game.enemies.splice(idx,1);
+  player.exp+=e.exp;player.killsThisRun++;game.kills++;
+  addText(e.x,e.y-10,"+"+e.exp,"#8ed2ff"); effect(e.x,e.y,e.r*1.8,e.color,.35);
+  if(player.poison && Math.random()<.18) player.exp+=4;
+  checkLevelUp();
+  if(game.kills%12===0 && !game.boss){game.stage++; toast("STAGE "+game.stage); if(game.stage%5===0)spawnBoss();}
+}
+
+function checkLevelUp(){
+  while(player.exp>=player.nextExp){
+    player.exp-=player.nextExp;player.level++;player.nextExp=calcNextExp(player.level);
+    showLevelChoices(); break;
+  }
+}
+
+function showLevelChoices(){
+  game.paused=true; game.pendingLevel=true; ui("levelOverlay").classList.add("on");ui("levelTitle").textContent="Lv."+player.level;
+  const pool=[...ABILITIES].sort(()=>Math.random()-.5).slice(0,3);game.choicePool=pool;
+  ui("choices").innerHTML="";
+  for(const a of pool){
+    const b=document.createElement("button");b.className="choice";
+    b.innerHTML='<span class="tag">'+a.tag+'</span><h3>'+a.name+'</h3><p>'+a.desc+'</p>';
+    b.onclick=()=>chooseAbility(a); ui("choices").appendChild(b);
+  }
+}
+function chooseAbility(a){
+  a.apply(player);applyEvo();
+  ui("levelOverlay").classList.remove("on");game.pendingLevel=false;game.paused=false;
+  toast(a.name+" GET"); checkEvolution(); updateHUD();
+}
+function checkEvolution(){
+  const has=t=>player.tags.has(t);
+  const candidates=[];
+  if(player.level>=30&&has("flame")&&has("ice")&&has("lightning")&&has("poison")&&has("flight"))candidates.push("forbidden");
+  if(player.level>=25&&has("flame")&&has("lightning")&&player.summon)candidates.push("demon_king");
+  if(player.level>=20&&has("flame")&&has("flight"))candidates.push("inferno_dragon");
+  if(player.level>=15&&has("flight")&&has("lightning"))candidates.push("sky_dragon");
+  if(player.level>=15&&has("poison")&&has("giant"))candidates.push("poison_beast");
+  if(player.level>=10&&has("giant"))candidates.push("giant_slime");
+  if(player.level>=10&&has("flame"))candidates.push("flame_slime");
+  if(player.level>=10&&has("ice"))candidates.push("ice_slime");
+  if(player.level>=10&&has("lightning"))candidates.push("thunder_slime");
+  if(candidates.length){
+    const next=candidates.sort((a,b)=>(EVOS[b].unlock-EVOS[a].unlock))[0];
+    if(EVOS[next] && player.evo!==next){
+      player.evo=next;game.selectedEvo=next;game.discovered.add(next);saveGame();applyEvo();
+      toast("EVOLUTION: "+EVOS[next].name);effect(player.x,player.y,player.r*2,"#fff",.9);game.flash=.35;game.shake=11;
+    }
+  }
+}
+
+function damagePlayer(amount){
+  if(player.hitInv>0||!player.alive)return;
+  player.hp-=amount;player.hitInv=.65;game.flash=.12;game.shake=8;damageNumber(player.x,player.y-player.r-8,amount,"#ff7180");
+  if(player.hp<=0)die();
+}
+function die(){
+  player.hp=0;player.alive=false;game.over=true;game.paused=true;
+  const souls=50+player.level*8+game.kills*2+game.stage*10;
+  save.souls+=souls;save.rebirths++;
+  ui("gainSouls").textContent=souls;ui("deadLevel").textContent=player.level;
+  ui("deathText").textContent="STAGE "+game.stage+" / KILLS "+game.kills+" / "+EVOS[player.evo].name;
+  ui("deathOverlay").classList.add("on");saveGame();
+}
+function rebirth(){ui("deathOverlay").classList.remove("on");startGame()}
+
+function enemyHitPlayer(e,dt){
+  const dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy)||1;
+  if(d<player.r+e.r+3){
+    damagePlayer(e.damage);
+    e.x-=dx/d*24;e.y-=dy/d*24;
+  }
+}
+function updateHelpers(dt){
+  if(!player.summon){game.helpers.length=0;return}
+  if(game.helpers.length<2)game.helpers.push({angle:Math.random()*Math.PI*2,rad:70});
+  for(const h of game.helpers){
+    h.angle+=dt*1.7;
+    h.x=player.x+Math.cos(h.angle)*h.rad;h.y=player.y+Math.sin(h.angle)*h.rad;
+    if(Math.random()<dt*2){
+      let t=nearestEnemy(); if(t&&dist2(h,t)<300*300) damageEnemy(t,Math.max(4,player.attackPower*.22));
+    }
+  }
+}
+
+function update(dt){
+  if(!game.running||game.paused||game.over)return;
+  game.time+=dt;player.cooldown=Math.max(0,player.cooldown-dt);player.hitInv=Math.max(0,player.hitInv-dt);
+  if(player.regen>0)player.hp=Math.min(player.maxHp,player.hp+player.regen*dt);
+
+  const mv=Math.hypot(stick.dx,stick.dy);
+  let vx=stick.dx,vy=stick.dy;
+  if(mv<.12){vx=keys.right-keys.left;vy=keys.down-keys.up;const l=Math.hypot(vx,vy)||1;vx/=l;vy/=l}
+  const sp=player.speed*dt;player.x=clamp(player.x+vx*sp,40,W-40);player.y=clamp(player.y+vy*sp,40,H-40);
+
+  game.spawnTimer-=dt;
+  const interval=Math.max(.22,1.0*Math.pow(.94,game.stage-1));
+  if(game.spawnTimer<=0 && !game.boss){spawnEnemy();game.spawnTimer=interval}
+  
+  for(const p of game.projectiles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}
+  for(let i=game.projectiles.length-1;i>=0;i--){
+    const p=game.projectiles[i]; if(p.life<=0){game.projectiles.splice(i,1);continue}
+    let hit=false;
+    for(const e of game.enemies){
+      if(dist2(p,e)<(p.r+e.r)*(p.r+e.r)){
+        damageEnemy(e,p.damage);hit=true;
+        if(player.explosion){
+          for(const q of game.enemies.slice()) if(q!==e&&dist2(e,q)<85*85)damageEnemy(q,p.damage*.32);
+        }
+        break;
+      }
+    }
+    if(hit)game.projectiles.splice(i,1);
+  }
+
+  for(const e of game.enemies){
+    e.attackCd=Math.max(0,e.attackCd-dt);e.stun=Math.max(0,e.stun-dt);
+    if(e.stun>0)continue;
+    const dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy)||1;
+    if(d>player.r+e.r+6){e.x+=dx/d*e.speed*dt;e.y+=dy/d*e.speed*dt}
+    if(d<player.r+e.r+12 && e.attackCd<=0){enemyHitPlayer(e,dt);e.attackCd=.52}
+    if(e.boss && Math.random()<dt*.18){
+      const a=Math.atan2(dy,dx);
+      for(let j=-1;j<=1;j++){
+        game.projectiles.push({x:e.x,y:e.y,vx:Math.cos(a+j*.24)*300,vy:Math.sin(a+j*.24)*300,life:2,r:9,damage:e.damage*.6,enemy:true});
+      }
+    }
+  }
+  for(let i=game.projectiles.length-1;i>=0;i--){
+    const p=game.projectiles[i];
+    if(p.enemy){
+      p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+      if(dist2(p,player)<(p.r+player.r)*(p.r+player.r)){damagePlayer(p.damage);game.projectiles.splice(i,1);continue}
+    }
+    if(p.life<=0){game.projectiles.splice(i,1)}
+  }
+
+  updateHelpers(dt);
+  for(const fx of game.effects)fx.t-=dt;
+  for(let i=game.effects.length-1;i>=0;i--)if(game.effects[i].t<=0)game.effects.splice(i,1);
+  for(const t of game.texts){t.t-=dt;t.y+=t.vy*dt;t.vy*=.94}
+  for(let i=game.texts.length-1;i>=0;i--)if(game.texts[i].t<=0)game.texts.splice(i,1);
+  game.shake=Math.max(0,game.shake-28*dt);game.flash=Math.max(0,game.flash-dt);
+  updateHUD();
+}
+
+function drawBackground(){
+  ctx.fillStyle="#080c13";ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=.45;
+  const step=64, ox=(game.time*10)%step,oy=(game.time*6)%step;
+  ctx.strokeStyle="#1a2433";ctx.lineWidth=1;
+  for(let x=-step+ox;x<W+step;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=-step+oy;y<H+step;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  ctx.globalAlpha=1;
+  const g=ctx.createRadialGradient(W/2,H/2,80,W/2,H/2,700);g.addColorStop(0,"rgba(58,100,160,.10)");g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+function drawBossBar(){
+  const b=game.enemies.find(e=>e.boss);if(!b)return;
+  const bw=Math.min(760,W*.68),x=(W-bw)/2,y=62;
+  ctx.fillStyle="rgba(5,8,13,.75)";ctx.fillRect(x,y,bw,18);
+  ctx.fillStyle="#ff5f74";ctx.fillRect(x,y,bw*clamp(b.hp/b.maxHp,0,1),18);
+  ctx.strokeStyle="rgba(255,255,255,.24)";ctx.strokeRect(x,y,bw,18);
+  ctx.fillStyle="#fff";ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.fillText(b.name,x+bw/2,y-6);
+}
+function drawEntityCircle(e,color){
+  ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle="rgba(255,255,255,.18)";ctx.stroke();
+}
+function drawPlayer(){
+  const col=EVOS[player.evo].color;
+  if(player.hitInv>0)ctx.globalAlpha=.55+Math.sin(game.time*40)*.2;
+  const g=ctx.createRadialGradient(player.x-player.r*.25,player.y-player.r*.35,2,player.x,player.y,player.r);
+  g.addColorStop(0,"#fff");g.addColorStop(.18,col);g.addColorStop(1,col);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,.45)";ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle="#111";ctx.beginPath();ctx.arc(player.x-player.r*.32,player.y-player.r*.12,4,0,Math.PI*2);ctx.arc(player.x+player.r*.32,player.y-player.r*.12,4,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#111";ctx.lineWidth=3;ctx.beginPath();ctx.arc(player.x,player.y+player.r*.05,player.r*.34,0.15,Math.PI-.15);ctx.stroke();
+  if(player.tags.has("flight")){
+    ctx.globalAlpha=.28;ctx.fillStyle=col;
+    for(const s of [-1,1]){ctx.beginPath();ctx.ellipse(player.x+s*player.r*1.25,player.y,player.r*.95,player.r*.42,s*.3,0,Math.PI*2);ctx.fill()}
+  }
+  if(player.summon){ctx.globalAlpha=.4;for(const h of game.helpers)drawEntityCircle(h,col)}
+  ctx.globalAlpha=1;
+}
+function draw(){
+  resize();
+  ctx.save();
+  let sx=0,sy=0;if(game.shake>0){sx=rnd(-game.shake,game.shake);sy=rnd(-game.shake,game.shake)}
+  ctx.translate(sx,sy);drawBackground();
+  for(const e of game.enemies){
+    drawEntityCircle(e,e.color);
+    if(e.boss){ctx.lineWidth=4;ctx.strokeStyle="#fff";ctx.stroke();ctx.fillStyle="#fff";ctx.font="bold 10px system-ui";ctx.textAlign="center";ctx.fillText("BOSS",e.x,e.y+4)}
+    ctx.fillStyle="rgba(0,0,0,.5)";ctx.fillRect(e.x-e.r,e.y-e.r-9,e.r*2,5);
+    ctx.fillStyle="#76e07f";ctx.fillRect(e.x-e.r,e.y-e.r-9,e.r*2*clamp(e.hp/e.maxHp,0,1),5);
+  }
+  for(const p of game.projectiles){ctx.fillStyle=p.enemy?"#ff7088":"#f8fbff";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()}
+  for(const fx of game.effects){const a=clamp(fx.t/fx.max,0,1);ctx.globalAlpha=a;ctx.strokeStyle=fx.color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(fx.x,fx.y,fx.r*(1+(1-a)*.7),0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
+  if(player)drawPlayer();
+  for(const t of game.texts){ctx.globalAlpha=clamp(t.t/0.8,0,1);ctx.fillStyle=t.color;ctx.font="800 16px system-ui";ctx.textAlign="center";ctx.fillText(t.text,t.x,t.y);ctx.globalAlpha=1}
+  drawBossBar();
+  ctx.restore();
+  if(game.flash>0){ctx.fillStyle="rgba(255,255,255,"+Math.min(.22,game.flash)+")";ctx.fillRect(0,0,canvas.width,canvas.height)}
+}
+function resize(){
+  const dpr=Math.min(devicePixelRatio||1,2),w=innerWidth,h=innerHeight;
+  if(canvas.width!==Math.floor(w*dpr)||canvas.height!==Math.floor(h*dpr)){
+    canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr);
+  }
+  const scale=Math.min(w/W,h/H),ox=(w-W*scale)/2,oy=(h-H*scale)/2;
+  ctx.setTransform(dpr*scale,0,0,dpr*scale,dpr*ox,dpr*oy);
+}
+function loop(ts){
+  const dt=Math.min(.033,(loop.last?(ts-loop.last)/1000:0));loop.last=ts;
+  update(dt);draw();requestAnimationFrame(loop);
+}
+loop.last=0;
+
+function updateHUD(){
+  if(!player)return;
+  ui("lv").textContent=player.level;ui("evoName").textContent=EVOS[player.evo].name;
+  ui("hpText").textContent=Math.ceil(player.hp)+" / "+Math.ceil(player.maxHp);ui("hpBar").style.width=(100*clamp(player.hp/player.maxHp,0,1))+"%";
+  ui("expText").textContent=Math.floor(player.exp)+" / "+player.nextExp;ui("expBar").style.width=(100*clamp(player.exp/player.nextExp,0,1))+"%";
+  ui("stage").textContent=game.stage;ui("kills").textContent=game.kills;ui("souls").textContent=save.souls;
+}
+let toastTimer=0;
+function toast(msg){ui("toast").textContent=msg;ui("toast").style.opacity="1";clearTimeout(toastTimer);toastTimer=setTimeout(()=>ui("toast").style.opacity="0",1100)}
+
+const keys={left:0,right:0,up:0,down:0};
+addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=1;
+  if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=1;
+  if(e.key==="ArrowUp"||e.key.toLowerCase()==="w")keys.up=1;
+  if(e.key==="ArrowDown"||e.key.toLowerCase()==="s")keys.down=1;
+  if(e.code==="Space"){e.preventDefault();performAttack()}
+  if(e.key==="Escape")togglePause();
+});
+addEventListener("keyup",e=>{
+  if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=0;
+  if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=0;
+  if(e.key==="ArrowUp"||e.key.toLowerCase()==="w")keys.up=0;
+  if(e.key==="ArrowDown"||e.key.toLowerCase()==="s")keys.down=0;
+});
+
+const stick={dx:0,dy:0,pid:null};
+const stickEl=ui("stick"),knob=ui("knob");
+function setStick(clientX,clientY){
+  const r=stickEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let dx=clientX-cx,dy=clientY-cy,lim=r.width*.36,l=Math.hypot(dx,dy)||1;
+  if(l>lim){dx=dx/l*lim;dy=dy/l*lim}
+  stick.dx=dx/lim;stick.dy=dy/lim;
+  if(Math.hypot(stick.dx,stick.dy)<.12){stick.dx=0;stick.dy=0}
+  knob.style.transform="translate("+dx+"px,"+dy+"px)";
+}
+function resetStick(){stick.dx=stick.dy=0;knob.style.transform="translate(0,0)";stick.pid=null}
+stickEl.addEventListener("pointerdown",e=>{stick.pid=e.pointerId;stickEl.setPointerCapture(e.pointerId);setStick(e.clientX,e.clientY)});
+stickEl.addEventListener("pointermove",e=>{if(e.pointerId===stick.pid)setStick(e.clientX,e.clientY)});
+stickEl.addEventListener("pointerup",e=>{if(e.pointerId===stick.pid)resetStick()});
+stickEl.addEventListener("pointercancel",resetStick);
+ui("attack").addEventListener("pointerdown",e=>{e.preventDefault();performAttack()});
+
+function togglePause(){
+  if(!game.running||game.over||game.pendingLevel)return;
+  game.paused=!game.paused;toast(game.paused?"PAUSED":"RESUME");
+}
+ui("pauseBtn").onclick=togglePause;
+ui("startBtn").onclick=startGame;
+ui("rebirthBtn").onclick=rebirth;
+ui("bookBtn").onclick=()=>{renderBook();ui("bookOverlay").classList.add("on");game.paused=true};
+ui("titleBookBtn").onclick=()=>{renderBook();ui("bookOverlay").classList.add("on")};
+ui("deathBookBtn").onclick=()=>{renderBook();ui("bookOverlay").classList.add("on")};
+ui("settingsBtn").onclick=()=>{renderUpgrades();ui("settingsOverlay").classList.add("on");game.paused=true};
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{ui(b.dataset.close).classList.remove("on");if(game.running&&!game.over&&!game.pendingLevel)game.paused=false});
+ui("saveBtn").onclick=saveGame;ui("resetBtn").onclick=resetData;
+
+function renderBook(){
+  const grid=ui("bookGrid");grid.innerHTML="";
+  for(const [id,e] of Object.entries(EVOS)){
+    const unlocked=game.discovered.has(id);
+    const d=document.createElement("div");d.className="evo"+(unlocked?"":" locked");
+    d.innerHTML="<h3>"+(unlocked?e.name:"???")+"</h3><p>"+(unlocked?"条件: "+e.req:"未発見")+"</p>";
+    grid.appendChild(d);
+  }
+}
+function upCost(key){
+  const lv=save.upgrades[key]||0;return Math.floor(20*Math.pow(1.65,lv));
+}
+function buyUpgrade(key){
+  const cost=upCost(key);
+  if(save.souls<cost){toast("SOUL不足");return}
+  if((save.upgrades[key]||0)>=30){toast("MAX");return}
+  save.souls-=cost;save.upgrades[key]=(save.upgrades[key]||0)+1;saveGame();renderUpgrades();updateHUD();
+}
+function renderUpgrades(){
+  const list=ui("upgradeList");list.innerHTML="";
+  const arr=[
+    ["attack","ATTACK","+4 攻撃力"],
+    ["hp","HP","+25 最大HP"],
+    ["speed","SPEED","+8 移動速度"],
+    ["regen","REGEN","+0.5 HP/s"],
+    ["crit","CRIT","+2% クリ率"]
+  ];
+  for(const [key,name,desc] of arr){
+    const box=document.createElement("div");box.className="card";box.style.marginTop="10px";
+    const lv=save.upgrades[key]||0,c=upCost(key);
+    box.innerHTML='<div class="topline"><div><h3 style="margin:0">'+name+' Lv.'+lv+'</h3><p>'+desc+'</p></div><button class="close buy">SOUL '+c+'</button></div>';
+    box.querySelector(".buy").onclick=()=>buyUpgrade(key);list.appendChild(box);
+  }
+}
+
+setInterval(()=>{if(game.running&&!game.over)saveGame()},5000);
+addEventListener("visibilitychange",()=>{if(document.hidden)saveGame()});
+addEventListener("resize",()=>resize());
+
+player=makePlayer();player.speedBonus=0;player.attackBonus=0;applyEvo();updateHUD();renderBook();renderUpgrades();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
