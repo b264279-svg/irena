@@ -1,0 +1,10 @@
+{
+  "name": "neon-ward",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A standalone browser mini game.",
+  "scripts": {
+    "start": "python3 -m http.server 4173 --bind 0.0.0.0",
+    "check": "node --check game.js"
+  }
+}
